@@ -1,0 +1,71 @@
+---
+- name: Create the jaeger group
+  group:
+    name: "{{ jaeger_system_group }}"
+    state: present
+    system: true
+
+- name: Create the jaeger user
+  user:
+    name: "{{ jaeger_system_user }}"
+    groups: "{{ jaeger_system_group }}"
+    append: true
+    shell: /usr/sbin/nologin
+    system: true
+    createhome: false
+    home: /
+
+- name: create jaeger configuration directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ jaeger_system_user }}"
+    group: "{{ jaeger_system_group }}"
+    mode: 0770
+  with_items:
+    - "{{ jaeger_config_dir }}"
+
+- block:
+    - name: Download jaeger binary to local folder
+      become: false
+      get_url:
+        url: "https://github.com/jaegertracing/jaeger/releases/download/v{{ jaeger_version }}/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}.tar.gz"
+        dest: "/tmp/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}.tar.gz"
+        #checksum: "sha256:{{ jaeger_checksum }}"
+        mode: '0644'
+      register: _download_binary
+      until: _download_binary is succeeded
+      retries: 5
+      delay: 2
+      delegate_to: localhost
+      check_mode: false
+
+    - name: Unpack jaeger binary
+      become: false
+      unarchive:
+        src: "/tmp/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}.tar.gz"
+        dest: "/tmp"
+        creates: "/tmp/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}/jaeger"
+      delegate_to: localhost
+      check_mode: false
+
+    - name: Propagate jaeger binaries
+      copy:
+        src: "/tmp/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}/jaeger-all-in-one"
+        dest: "{{ _jaeger_binary_install_dir }}/jaeger-all-in-one"
+        mode: 0755
+        owner: root
+        group: root
+      notify: restart jaeger
+      when: not ansible_check_mode
+  when: jaeger_binary_local_dir | length == 0
+
+- name: propagate locally distributed jaeger binary
+  copy:
+    src: "{{ jaeger_binary_local_dir }}/jaeger-all-in-one"
+    dest: "{{ _jaeger_binary_install_dir }}/jaeger-all-in-one"
+    mode: 0755
+    owner: root
+    group: root
+  when: jaeger_binary_local_dir | length > 0
+  notify: restart jaeger
