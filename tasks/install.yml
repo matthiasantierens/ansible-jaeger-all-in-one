@@ -29,7 +29,7 @@
     - name: Download jaeger binary to local folder
       become: false
       get_url:
-        url: "https://github.com/jaegertracing/jaeger/releases/download/v{{ jaeger_version }}/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}.tar.gz"
+        url: "{{ jaeger_url }}"
         dest: "/tmp/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}.tar.gz"
         #checksum: "sha256:{{ jaeger_checksum }}"
         mode: '0644'
