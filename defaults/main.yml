@@ -1,7 +1,8 @@
 ---
 jaeger_web_listen_address: "127.0.0.1:16686"
-jaeger_version: 1.21.0
+jaeger_version: 1.47.0
 jaeger_all_in_one: true
+jaeger_url: "https://github.com/jaegertracing/jaeger/releases/download/v{{ jaeger_version }}/jaeger-{{ jaeger_version }}-linux-{{ go_arch }}.tar.gz"
 
 jaeger_binary_local_dir: ''
 jaeger_skip_install: false
